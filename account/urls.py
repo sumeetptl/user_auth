@@ -1,12 +1,13 @@
 from django.urls import path, include
 # from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
-from account.views import UserRegisterationView, UserLoginView, UserProfileView
+from account.views import UserRegisterationView, UserLoginView, UserProfileView, VerifyEmail
 
 urlpatterns = [
     # path('schema/', SpectacularAPIView.as_view(), name='schema'),
     # # Optional UI:
     # path('schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('register/',UserRegisterationView.as_view(), name="Registeration" ),
+    path('verify/',VerifyEmail.as_view(), name="email-verify" ),
     path('login/',UserLoginView.as_view(), name="Login" ),
     path('profile/',UserProfileView.as_view(), name="Profile"),
     # path('change_password/',UserChangePassword.as_view(), name="Change_Password"),
