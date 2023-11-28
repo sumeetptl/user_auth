@@ -2,9 +2,9 @@ from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from account.serializers import UserProfileSerializer, UserRegistrationSerializer,UserLoginSerializer
+from account.serializers import UserProfileSerializer, UserRegistrationSerializer,UserLoginSerializer, EmailVerificationSerializer
 from account.models import User
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework.permissions import IsAuthenticated
 from account.renderers import UserRenderer
 from django.contrib.auth import authenticate
@@ -29,7 +29,7 @@ class UserRegisterationView(APIView):
         serializer=UserRegistrationSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             user = serializer.create(request.data)
-            token = get_tokens_for_user(user=user)['access']
+            token = RefreshToken.for_user(user).access_token
             current_site = get_current_site(request).domain
             relativeLink = reverse('email-verify')
             absurl = 'http://'+current_site+relativeLink+"?token="+str(token)
@@ -42,8 +42,21 @@ class UserRegisterationView(APIView):
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 class VerifyEmail(APIView):
-    def get(self,request):
-        pass
+    serializer_class = EmailVerificationSerializer
+
+    def get(self, request):
+        token = request.GET.get('token')
+        try:
+            payload = AccessToken(token)
+            user = User.objects.get(id=payload['user_id'])
+            if not user.is_verified:
+                user.is_verified = True
+                user.save()
+            return Response({'email': 'Successfully activated'}, status=status.HTTP_200_OK)
+        except jwt.ExpiredSignatureError as identifier:
+            return Response({'error': 'Activation Expired'}, status=status.HTTP_400_BAD_REQUEST)
+        except jwt.exceptions.DecodeError as identifier:
+            return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
     
 class UserLoginView(APIView):
     renderer_classes=[UserRenderer]
